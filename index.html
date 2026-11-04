@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>靜室開窗</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#1b140e;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:#f6ecdc}
+#bg{position:fixed;inset:-40px;background-size:cover;background-position:center;filter:blur(28px) brightness(.55);transition:background-image .8s}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#stage{position:relative;aspect-ratio:3/4;width:min(100vw,calc((100dvh - 120px)*.75));max-width:100vw;border-radius:6px;overflow:hidden;box-shadow:0 20px 60px #0008;transition:opacity .6s}
+#stage.fade{opacity:0}
+.win{position:absolute;overflow:hidden;background:#cfd8dc}
+.win .sc{position:absolute;inset:-8%;background-size:cover;background-position:center;opacity:0;transition:opacity 2.2s ease;animation:kb 60s ease-in-out infinite alternate}
+.win.open .sc{opacity:1}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.12) translate(-3%,1.5%)}}
+.win canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.win .tint,#full .tint{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;transition:background 3s}
+.sh{position:absolute;top:0;bottom:0;width:50%;background:repeating-linear-gradient(180deg,#7a5534 0 7%,#5b3d24 7% 8.5%);box-shadow:inset 0 0 12px #0007;transition:transform 2.4s cubic-bezier(.45,.05,.3,1)}
+.sh.l{left:0;transform-origin:left}.sh.r{right:0;transform-origin:right}
+.win.open .sh.l{transform:translateX(-102%)}.win.open .sh.r{transform:translateX(102%)}
+#room{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}
+#tintRoom{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;transition:background 3s}
+.hot{position:absolute;cursor:pointer;border-radius:50%}
+.hot.w{border-radius:4px}
+.hot:focus-visible{outline:2px solid #ffe7b0}
+.pulse::after{content:"";position:absolute;inset:25%;border-radius:50%;border:1.5px solid #fff8;animation:pl 2.6s ease-out infinite}
+@keyframes pl{from{transform:scale(.6);opacity:.9}to{transform:scale(1.6);opacity:0}}
+#smoke{position:absolute;pointer-events:none;width:12%;height:30%;transform:translate(-50%,-100%)}
+#glow{position:absolute;pointer-events:none;width:26%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(#ffcf7a99,#ff9a3022 45%,transparent 70%);opacity:0;transition:opacity 1.5s;mix-blend-mode:screen}
+#glow.on{opacity:1;animation:fl .18s infinite alternate}
+@keyframes fl{from{transform:translate(-50%,-50%) scale(.96)}to{transform:translate(-50%,-50%) scale(1.04)}}
+#breath{position:absolute;left:50%;top:45%;width:40%;aspect-ratio:1;transform:translate(-50%,-50%) scale(.5);border-radius:50%;background:radial-gradient(#fff6dccc,#ffe3a855 40%,transparent 70%);opacity:0;pointer-events:none;mix-blend-mode:screen}
+#lightwash{position:absolute;inset:0;background:#fff3d6;opacity:0;pointer-events:none;mix-blend-mode:soft-light}
+#hint{position:absolute;left:50%;top:8%;transform:translateX(-50%);background:#0006;padding:6px 14px;border-radius:20px;font-size:14px;letter-spacing:2px;pointer-events:none;transition:opacity 1.5s;white-space:nowrap}
+#timer{position:absolute;left:50%;top:5%;transform:translateX(-50%);display:none;text-align:center;background:#0007;padding:8px 16px;border-radius:18px;cursor:pointer}
+#timer b{font-size:22px;font-weight:300;letter-spacing:2px}#timer small{display:block;font-size:12px;opacity:.8}
+#bar{height:auto;margin-top:10px;display:flex;gap:8px;align-items:center}
+.pill{background:#ffffff1c;border:1px solid #ffffff30;color:#f6ecdc;border-radius:22px;padding:9px 14px;font-size:15px;cursor:pointer;backdrop-filter:blur(6px)}
+#rname{min-width:120px;text-align:center}
+#sheet{position:fixed;left:0;right:0;bottom:0;background:#2a1f16f2;border-radius:18px 18px 0 0;padding:18px 20px 28px;transform:translateY(105%);transition:transform .45s;max-width:560px;margin:0 auto;z-index:20}
+#sheet.on{transform:none}
+#sheet h3{font-weight:400;letter-spacing:3px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px;margin:12px 0;flex-wrap:wrap}.row label{width:64px;opacity:.85}
+.row input[type=range]{flex:1;accent-color:#e6b76a}
+.chip{padding:6px 12px;border-radius:16px;border:1px solid #ffffff40;cursor:pointer;font-size:14px}
+.chip.on{background:#e6b76a;color:#2a1f16;border-color:#e6b76a}
+#full{position:fixed;inset:0;z-index:15;display:none;background:#000}
+#full .sc{position:absolute;inset:-6%;background-size:cover;background-position:center;animation:kb 60s ease-in-out infinite alternate}
+#full canvas{position:absolute;inset:0;width:100%;height:100%}
+#full .cap{white-space:nowrap;position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:#0006;padding:6px 16px;border-radius:16px;letter-spacing:3px}
+#rooms{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#rooms div{font-size:12px;text-align:center;padding:6px 2px;border-radius:8px;background:#ffffff12;cursor:pointer}
+#rooms div.on{background:#e6b76a;color:#2a1f16}
+.note{font-size:12px;opacity:.6;margin-top:10px;line-height:1.6}
+</style></head><body>
+<div id="bg"></div>
+<div id="app">
+ <div id="stage">
+  <div id="wins"></div>
+  <img id="room" alt="">
+  <div id="tintRoom"></div>
+  <div id="lightwash"></div>
+  <canvas id="smoke"></canvas>
+  <div id="glow"></div>
+  <div id="breath"></div>
+  <div id="hots"></div>
+  <div id="hint">點一扇窗，打開看看</div>
+  <div id="timer"><b id="tleft">05:00</b><small id="tmode">靜坐中・點一下結束</small></div>
+ </div>
+ <div id="bar">
+  <span class="pill" id="prev" aria-label="上一間">‹</span>
+  <span class="pill" id="rname">山中木屋</span>
+  <span class="pill" id="next" aria-label="下一間">›</span>
+  <span class="pill" id="rand" title="隨機換一間">換一間</span>
+  <span class="pill" id="gear" title="設定">⋯</span>
+ </div>
+</div>
+<div id="full"><div class="sc"></div><canvas></canvas><div class="tint"></div><div class="cap"></div></div>
+<div id="sheet">
+ <h3>坐一會兒</h3>
+ <div class="row"><label>時間</label><span id="durs"></span></div>
+ <div class="row"><label>方式</label><span class="chip" data-m="sit">靜坐</span><span class="chip" data-m="breath">跟著呼吸</span></div>
+ <div class="row"><label>音樂</label><span class="chip" data-mu="qin">古琴</span><span class="chip" data-mu="xiao">洞簫</span><span class="chip" data-mu="off">不要</span></div>
+ <div class="row"><label>音樂音量</label><input type="range" id="vMusic" min="0" max="100"></div>
+ <div class="row"><label>自然聲</label><input type="range" id="vNature" min="0" max="100"></div>
+ <div class="row"><label>房間</label></div><div id="rooms"></div>
+ <p class="note">點窗打開；再點一次看整片風景。點蒲團開始坐一會兒，點香爐點香，點燭台點燭，點古琴聽音樂。<br>目前的琴聲與簫聲是暫代的合成音，之後會換成真正的演奏錄音。</p>
+ <div class="row"><span class="pill" id="closeSheet">收起</span></div>
+</div>
+<script>
+/* ===== 資料：之後要做訂閱時，把 premium:true 加在房間或窗景上即可 ===== */
+const ROOMS=[
+ {id:'r01',name:'山中木屋',wins:[[13.66,20.05,17.13,25.26],[41.67,20.05,17.13,25.26],[69.68,20.14,17.13,25.17]],cushion:[49,79],incense:[19,54],candle:[65,57],qin:[86,65]},
+ {id:'r02',name:'湖邊帳篷',wins:[[23.84,37.93,21.76,18.84],[54.28,37.93,21.64,18.75]],cushion:[49,77],incense:[11,70],candle:[90,59],qin:[76,65]},
+ {id:'r03',name:'草原小屋',wins:[[17.25,21.35,12.73,15.71],[37.73,21.35,12.73,15.71],[58.68,21.27,12.85,15.8],[79.98,21.35,12.85,15.71]],cushion:[46,78],incense:[10,69],candle:[61,59],qin:[78,57]},
+ {id:'r04',name:'山寺禪堂',wins:[[19.68,33.51,15.74,22.05],[42.13,33.51,15.97,22.05],[64.7,33.51,15.86,21.96]],cushion:[50,79],incense:[11,59],candle:[79,59],qin:[90,65]},
+ {id:'r05',name:'石砌小教堂',wins:[[26.5,18.58,9.72,26.82],[64.81,18.58,9.72,26.82]],cushion:[50,83],incense:[16,78],candle:[94,76],qin:[75,69]},
+ {id:'r06',name:'日式茶室',wins:[[12.15,21.7,35.07,28.73],[53.24,21.7,35.19,28.73]],cushion:[50,79],incense:[15,67],candle:[90,60],qin:[78,63]},
+ {id:'r07',name:'海邊小屋',wins:[[12.27,20.57,18.75,23.78],[40.74,20.57,18.75,23.78],[69.1,20.57,18.63,23.78]],cushion:[49,79],incense:[14,75],candle:[91,60],qin:[84,66]},
+ {id:'r08',name:'森林樹屋',wins:[[21.76,31.25,21.64,14.76],[58.8,31.25,21.53,14.76]],cushion:[49,76],incense:[14,74],candle:[88,66],qin:[78,67]},
+ {id:'r09',name:'雪地小木屋',wins:[[44.79,16.06,15.51,26.13],[74.19,15.97,15.62,26.22]],cushion:[50,82],incense:[18,89],candle:[91,67],qin:[76,63],fire:[13,46]},
+ {id:'r10',name:'雨天閣樓書房',wins:[[25.81,26.04,16.32,23.87],[57.87,26.04,16.44,23.96]],cushion:[49,79],incense:[9,74],candle:[92,68],qin:[84,72],rain:true}
+];
+// fx: 畫面動態；snd: 自然聲；surprise: 可出現的小驚喜
+const SCENES=[
+ {id:'s01',name:'晨光湖面',fx:'shimmer',snd:['water','birds'],sp:['birds','boat']},
+ {id:'s02',name:'雪山',fx:'none',snd:['wind'],sp:['birds']},
+ {id:'s03',name:'森林',fx:'motes',snd:['wind','birds'],sp:['deer','birds']},
+ {id:'s04',name:'海岸',fx:'shimmer',snd:['waves'],sp:['birds','boat']},
+ {id:'s05',name:'雨中庭院',fx:'rain',snd:['rain']},
+ {id:'s06',name:'星空草原',fx:'stars',snd:['insects','wind'],sp:['star']},
+ {id:'s07',name:'櫻花',fx:'petals',snd:['water','birds'],sp:['birds']},
+ {id:'s08',name:'楓紅',fx:'leaves',snd:['wind','water'],sp:['birds','deer']},
+ {id:'s09',name:'竹林',fx:'motes',snd:['wind','birds'],sp:['birds']},
+ {id:'s10',name:'瀑布',fx:'mist',snd:['stream'],sp:['rainbow']},
+ {id:'s11',name:'雲海',fx:'none',snd:['wind'],sp:['birds']},
+ {id:'s12',name:'極光',fx:'aurora',snd:['wind'],sp:['star']},
+ {id:'s13',name:'沙漠星空',fx:'stars',snd:['wind'],sp:['star']},
+ {id:'s14',name:'稻田',fx:'shimmer',snd:['insects','birds'],sp:['birds','rainbow']},
+ {id:'s15',name:'薰衣草田',fx:'motes',snd:['wind','insects'],sp:['birds']},
+ {id:'s16',name:'海上日落',fx:'shimmer',snd:['waves'],sp:['boat','birds']},
+ {id:'s17',name:'霧中山谷',fx:'mist',snd:['wind','birds'],sp:['birds']},
+ {id:'s18',name:'北歐峽灣',fx:'shimmer',snd:['water','wind'],sp:['boat','birds']},
+ {id:'s19',name:'落雪小鎮',fx:'snow',snd:['wind']},
+ {id:'s20',name:'螢火蟲之夜',fx:'fireflies',snd:['insects','stream'],sp:['star']}
+];
+const $=s=>document.querySelector(s);
+const P=Object.assign({room:0,dur:5,mode:'sit',music:'qin',vm:60,vn:70},JSON.parse(localStorage.getItem('jingshi_prefs')||'{}'));
+const save=()=>localStorage.setItem('jingshi_prefs',JSON.stringify(P));
+
+/* ===== 天色：跟著現在的時間 ===== */
+function skyTint(){const h=new Date().getHours()+new Date().getMinutes()/60;
+ if(h>=6.5&&h<16.5)return['transparent','transparent'];
+ if(h>=16.5&&h<18.5)return['#ffb27a55','#ffcf9f30'];
+ if(h>=5&&h<6.5)return['#ffc4a040','#ffdcc020'];
+ return['#3a4a8a88','#30285a40'];}
+function applyTint(){const[t,r]=skyTint();document.querySelectorAll('.tint').forEach(e=>e.style.background=t);$('#tintRoom').style.background=r;}
+setInterval(applyTint,60000);
+
+/* ===== 聲音（WebAudio 即時合成，不用下載） ===== */
+let AC,master,natBus,musBus,noiseBuf;const layers={};
+function audio(){if(AC)return;AC=new (window.AudioContext||window.webkitAudioContext)();
+ master=AC.createGain();master.connect(AC.destination);
+ natBus=AC.createGain();natBus.gain.value=P.vn/100;natBus.connect(master);
+ musBus=AC.createGain();musBus.gain.value=P.vm/100;
+ const rv=AC.createConvolver();rv.buffer=irBuf(3.2);const wet=AC.createGain();wet.gain.value=.45;musBus.connect(master);musBus.connect(rv);rv.connect(wet);wet.connect(master);
+ noiseBuf=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate);const d=noiseBuf.getChannelData(0);let b=0;for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+function irBuf(s){const n=AC.sampleRate*s,b=AC.createBuffer(2,n,AC.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3)}return b}
+function noise(){const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;s.loopStart=Math.random();s.start(0,Math.random()*3);return s}
+function lfo(target,rate,depth,base){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=rate;g.gain.value=depth;o.connect(g);g.connect(target);target.value=base;o.start();return o}
+const GEN={
+ rain(){const n=noise(),f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=1800;f.Q.value=.4;const g=AC.createGain();g.gain.value=.5;n.connect(f);f.connect(g);
+  const n2=noise(),f2=AC.createBiquadFilter();f2.type='lowpass';f2.frequency.value=500;const g2=AC.createGain();g2.gain.value=.35;n2.connect(f2);f2.connect(g2);
+  const o=AC.createGain();g.connect(o);g2.connect(o);let t=setInterval(()=>drop(o),90);return{out:o,stop(){clearInterval(t);n.stop();n2.stop()}}},
+ water(){const n=noise(),f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;const g=AC.createGain();n.connect(f);f.connect(g);const l1=lfo(f.frequency,.23,300,700),l2=lfo(g.gain,.11,.12,.22);return{out:g,stop(){n.stop();l1.stop();l2.stop()}}},
+ stream(){const n=noise(),f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=.7;const g=AC.createGain();g.gain.value=.5;n.connect(f);f.connect(g);const l=lfo(f.frequency,.4,500,1300);return{out:g,stop(){n.stop();l.stop()}}},
+ waves(){const n=noise(),f=AC.createBiquadFilter();f.type='lowpass';const g=AC.createGain();n.connect(f);f.connect(g);const l1=lfo(g.gain,.08,.35,.4),l2=lfo(f.frequency,.08,500,800);return{out:g,stop(){n.stop();l1.stop();l2.stop()}}},
+ wind(){const n=noise(),f=AC.createBiquadFilter();f.type='bandpass';f.Q.value=2.5;const g=AC.createGain();n.connect(f);f.connect(g);const l1=lfo(f.frequency,.05,250,450),l2=lfo(g.gain,.07,.12,.2);return{out:g,stop(){n.stop();l1.stop();l2.stop()}}},
+ birds(){const o=AC.createGain();o.gain.value=.12;let alive=true;(function loop(){if(!alive)return;chirp(o);setTimeout(loop,1500+Math.random()*5000)})();return{out:o,stop(){alive=false}}},
+ insects(){const os=AC.createOscillator();os.frequency.value=4300;const am=AC.createGain();am.gain.value=0;const g=AC.createGain();g.gain.value=.025;os.connect(am);am.connect(g);const l=lfo(am.gain,13,.5,.5);os.start();return{out:g,stop(){os.stop();l.stop()}}},
+ fire(){const n=noise(),f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=300;const g=AC.createGain();g.gain.value=.4;n.connect(f);f.connect(g);const o=AC.createGain();g.connect(o);let t=setInterval(()=>{if(Math.random()<.5)drop(o,.25,3000)},120);return{out:o,stop(){clearInterval(t);n.stop()}}}
+};
+function drop(o,v=.06,fr=2500+Math.random()*3000){const t=AC.currentTime,s=AC.createOscillator(),g=AC.createGain();s.frequency.value=fr;g.gain.setValueAtTime(v*Math.random(),t);g.gain.exponentialRampToValueAtTime(.0001,t+.03);s.connect(g);g.connect(o);s.start(t);s.stop(t+.05)}
+function chirp(o){const t=AC.currentTime,n=2+Math.floor(Math.random()*4),base=2500+Math.random()*1800;for(let i=0;i<n;i++){const s=AC.createOscillator(),g=AC.createGain(),t0=t+i*.13;s.frequency.setValueAtTime(base,t0);s.frequency.exponentialRampToValueAtTime(base*1.4,t0+.08);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.5,t0+.02);g.gain.exponentialRampToValueAtTime(.001,t0+.1);s.connect(g);g.connect(o);s.start(t0);s.stop(t0+.12)}}
+function layerOn(k){audio();if(layers[k]){layers[k].n++;return}const L=GEN[k]();const g=AC.createGain();g.gain.value=0;L.out.connect(g);g.connect(natBus);g.gain.linearRampToValueAtTime(1,AC.currentTime+3);layers[k]={L,g,n:1}}
+function layerOff(k){const l=layers[k];if(!l)return;if(--l.n>0)return;delete layers[k];l.g.gain.cancelScheduledValues(AC.currentTime);l.g.gain.setValueAtTime(l.g.gain.value,AC.currentTime);l.g.gain.linearRampToValueAtTime(0,AC.currentTime+2.5);setTimeout(()=>l.L.stop(),2800)}
+function allOff(){Object.keys(layers).forEach(k=>{layers[k].n=1;layerOff(k)})}
+
+/* 磬聲 */
+function bell(){audio();const t=AC.currentTime;[[1,1],[2.76,.5],[5.4,.25],[8.93,.12]].forEach(([m,a])=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=420*m;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35*a,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+7/m**.4);o.connect(g);g.connect(master);o.start(t);o.stop(t+8)})}
+
+/* ===== 暫代音樂：之後換成老師親自演奏的古琴、洞簫錄音（放 audio/ 資料夾，改 playMusic 即可） ===== */
+const PENTA=[146.8,164.8,196,220,246.9,293.7,329.6,392,440];let musT=null,musOn=false;
+function qinNote(f,t,v=.5){const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.005);g.gain.exponentialRampToValueAtTime(.0008,t+4.5);g.connect(musBus);
+ [[1,1],[2,.45],[3,.22],[4,.1],[5,.06]].forEach(([h,a])=>{const o=AC.createOscillator(),og=AC.createGain();o.frequency.setValueAtTime(f*h*1.01,t);o.frequency.exponentialRampToValueAtTime(f*h,t+.12);if(Math.random()<.25)o.frequency.exponentialRampToValueAtTime(f*h*1.06,t+1.6);og.gain.value=a;og.gain.exponentialRampToValueAtTime(a*.2,t+1.5/h);o.connect(og);og.connect(g);o.start(t);o.stop(t+5)})}
+function xiaoNote(f,t,d){const o=AC.createOscillator();o.type='sine';o.frequency.value=f;const vib=AC.createOscillator(),vg=AC.createGain();vib.frequency.value=4.8;vg.gain.value=f*.006;vib.connect(vg);vg.connect(o.frequency);
+ const n=noise(),nf=AC.createBiquadFilter();nf.type='bandpass';nf.frequency.value=f*2;nf.Q.value=6;const ng=AC.createGain();ng.gain.value=.25;n.connect(nf);nf.connect(ng);
+ const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.6);g.gain.setValueAtTime(.22,t+d-.8);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g);ng.connect(g);g.connect(musBus);o.start(t);vib.start(t);o.stop(t+d+.1);vib.stop(t+d+.1);setTimeout(()=>n.stop(),(d+1)*1000)}
+function phrase(){if(!musOn)return;const t=AC.currentTime+.1;let i=Math.floor(Math.random()*5)+2,dt=0;
+ if(P.music==='qin'){const k=3+Math.floor(Math.random()*4);for(let j=0;j<k;j++){i=Math.max(0,Math.min(8,i+[-2,-1,1,2,0][Math.floor(Math.random()*5)]));qinNote(PENTA[i],t+dt,.45);if(Math.random()<.3)qinNote(PENTA[i]/2,t+dt,.25);dt+=.7+Math.random()*1.2}musT=setTimeout(phrase,(dt+3+Math.random()*4)*1000)}
+ else{const k=2+Math.floor(Math.random()*3);for(let j=0;j<k;j++){i=Math.max(0,Math.min(7,i+[-1,1,0,-2][Math.floor(Math.random()*4)]));const d=2.5+Math.random()*2.5;xiaoNote(PENTA[i]*2,t+dt,d);dt+=d+.3}musT=setTimeout(phrase,(dt+4+Math.random()*4)*1000)}}
+function setMusic(on){audio();musOn=on&&P.music!=='off';clearTimeout(musT);if(musOn)phrase();toast(musOn?(P.music==='qin'?'琴聲響起':'簫聲響起'):'音樂停了')}
+
+/* ===== 畫面動態 ===== */
+const fxRuns=new Set();
+function FX(cv,sc){const c=cv.getContext('2d');let W,H,parts=[],sprite=null,run=true,t0=performance.now();
+ function size(){W=cv.width=cv.clientWidth*devicePixelRatio;H=cv.height=cv.clientHeight*devicePixelRatio}size();
+ const N={rain:120,snow:90,petals:22,leaves:16,fireflies:28,stars:40,motes:30,shimmer:40,mist:3,aurora:1,none:0}[sc.fx]||0;
+ for(let i=0;i<N;i++)parts.push({x:Math.random(),y:Math.random(),s:Math.random(),p:Math.random()*6.28});
+ const o={stop(){run=false},spr(k){sprite={k,t:0}}};
+ function frame(now){if(!run)return;if(cv.clientWidth*devicePixelRatio!==W)size();const tt=(now-t0)/1000;c.clearRect(0,0,W,H);const u=Math.min(W,H)/200;
+  for(const p of parts){switch(sc.fx){
+   case'rain':p.y+=.02+p.s*.02;p.x-=.002;if(p.y>1){p.y=0;p.x=Math.random()}c.strokeStyle='rgba(220,230,255,.35)';c.lineWidth=u*.5;c.beginPath();c.moveTo(p.x*W,p.y*H);c.lineTo(p.x*W-u,p.y*H+u*8);c.stroke();break;
+   case'snow':p.y+=.001+p.s*.002;p.x+=Math.sin(tt+p.p)*.0006;if(p.y>1)p.y=0;c.fillStyle='rgba(255,255,255,.85)';c.beginPath();c.arc(p.x*W,p.y*H,u*(.6+p.s*1.4),0,7);c.fill();break;
+   case'petals':case'leaves':p.y+=.0012+p.s*.0015;p.x+=.0008+Math.sin(tt*.8+p.p)*.001;if(p.y>1||p.x>1){p.y=-.05;p.x=Math.random()*.8}c.save();c.translate(p.x*W,p.y*H);c.rotate(tt+p.p);c.fillStyle=sc.fx==='petals'?'rgba(255,200,215,.9)':['#d9472b','#e8892a','#c23a22'][Math.floor(p.s*3)];c.beginPath();c.ellipse(0,0,u*2.2,u*1.1,0,0,7);c.fill();c.restore();break;
+   case'fireflies':{const a=.5+.5*Math.sin(tt*2+p.p*3);p.x+=Math.sin(tt*.3+p.p)*.0005;p.y+=Math.cos(tt*.25+p.p)*.0004;const x=p.x*W,y=(.4+p.y*.6)*H,g=c.createRadialGradient(x,y,0,x,y,u*5);g.addColorStop(0,`rgba(230,255,140,${a})`);g.addColorStop(1,'rgba(230,255,140,0)');c.fillStyle=g;c.fillRect(x-u*5,y-u*5,u*10,u*10);break}
+   case'stars':{const a=.3+.7*Math.abs(Math.sin(tt*.8+p.p));c.fillStyle=`rgba(255,255,255,${a*.8})`;c.fillRect(p.x*W,p.y*H*.55,u*.8,u*.8);break}
+   case'motes':{p.y-=.0003;p.x+=Math.sin(tt*.4+p.p)*.0004;if(p.y<0)p.y=1;const a=.25+.25*Math.sin(tt+p.p);c.fillStyle=`rgba(255,240,190,${a})`;c.beginPath();c.arc(p.x*W,p.y*H,u*.8,0,7);c.fill();break}
+   case'shimmer':{const y=(.62+p.y*.38)*H,a=Math.max(0,Math.sin(tt*1.5+p.p*5))*.6;c.fillStyle=`rgba(255,250,225,${a})`;c.fillRect(p.x*W+Math.sin(tt+p.p)*u*3,y,u*(3+p.s*6),u*.5);break}
+   case'mist':{const x=((p.x+tt*.006*(p.s+.5))%1.4-.2)*W,y=(.45+p.y*.4)*H,g=c.createRadialGradient(x,y,0,x,y,W*.45);g.addColorStop(0,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(0,0,W,H);break}
+   case'aurora':{c.globalCompositeOperation='screen';for(let k=0;k<3;k++){const g=c.createLinearGradient(0,0,0,H*.6);const a=.12+.1*Math.sin(tt*.5+k*2);g.addColorStop(0,'rgba(120,255,170,0)');g.addColorStop(.5,`rgba(120,255,170,${a})`);g.addColorStop(1,'rgba(160,100,255,0)');c.fillStyle=g;c.beginPath();c.moveTo(0,H*.1);for(let x=0;x<=W;x+=W/20)c.lineTo(x,H*(.15+.12*Math.sin(x/W*5+tt*.3+k)));c.lineTo(W,H*.6);c.lineTo(0,H*.6);c.fill()}c.globalCompositeOperation='source-over';break}
+  }}
+  if(sprite){sprite.t+=1/60/14;const q=sprite.t,k=sprite.k;c.save();
+   if(k==='birds'){c.strokeStyle='rgba(40,35,30,.8)';c.lineWidth=u*.6;for(let b=0;b<4;b++){const x=(-.1+q*1.2-b*.04)*W,y=(.2+b*.03+Math.sin(q*20+b)*.01)*H,w=u*(2.5-b*.2),f=Math.sin(tt*10+b)*u*1.5;c.beginPath();c.moveTo(x-w,y-f);c.quadraticCurveTo(x-w/2,y-u,x,y);c.quadraticCurveTo(x+w/2,y-u,x+w,y-f);c.stroke()}}
+   else if(k==='star'&&q<.08){const z=q/.08,x=(.2+z*.5)*W,y=(.1+z*.2)*H,g=c.createLinearGradient(x,y,x-W*.15,y-H*.06);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(255,255,255,0)');c.strokeStyle=g;c.lineWidth=u*.7;c.beginPath();c.moveTo(x,y);c.lineTo(x-W*.15,y-H*.06);c.stroke()}
+   else if(k==='boat'){const x=(1.1-q*1.2)*W,y=H*.6;c.fillStyle='rgba(30,30,40,.75)';c.beginPath();c.moveTo(x-u*6,y);c.lineTo(x+u*6,y);c.lineTo(x+u*4,y+u*2);c.lineTo(x-u*4,y+u*2);c.fill();c.beginPath();c.moveTo(x,y);c.lineTo(x,y-u*9);c.lineTo(x+u*5,y-u*1);c.fill()}
+   else if(k==='deer'){const x=(-.1+q*1.2)*W,y=H*.82,s=u*1.6,bob=Math.abs(Math.sin(tt*4))*s*.3;c.fillStyle='rgba(60,40,25,.85)';c.beginPath();c.ellipse(x,y-bob,s*4,s*1.6,0,0,7);c.fill();c.fillRect(x+s*3,y-s*4-bob,s*1.2,s*3);c.beginPath();c.ellipse(x+s*4,y-s*4.5-bob,s*1.4,s*.9,0,0,7);c.fill();for(const lx of[-3,-1.5,1.5,3])c.fillRect(x+lx*s,y-bob,s*.5,s*3+bob);c.strokeStyle='rgba(60,40,25,.85)';c.lineWidth=s*.4;c.beginPath();c.moveTo(x+s*3.6,y-s*5.2-bob);c.lineTo(x+s*3,y-s*7-bob);c.moveTo(x+s*4.2,y-s*5.2-bob);c.lineTo(x+s*5,y-s*7-bob);c.stroke()}
+   else if(k==='rainbow'){const a=Math.sin(Math.min(q,1)*Math.PI)*.35;['255,80,80','255,170,60','255,240,90','110,220,110','90,160,255','160,110,255'].forEach((col,j)=>{c.strokeStyle=`rgba(${col},${a})`;c.lineWidth=u*1.2;c.beginPath();c.arc(W*.5,H*1.05,H*(.75-j*.025),Math.PI*1.05,Math.PI*1.95);c.stroke()})}
+   c.restore();if(q>=1)sprite=null}
+  requestAnimationFrame(frame)}
+ requestAnimationFrame(frame);fxRuns.add(o);return o}
+
+/* ===== 房間 ===== */
+let roomRain=false,cur,openWins=[],used=new Set(),incense=false,candle=false,fireOn=false;
+function pickScene(){const free=SCENES.filter(s=>!used.has(s.id));const s=free[Math.floor(Math.random()*free.length)];used.add(s.id);return s}
+function hot(cls,[x,y],w,label,fn){const h=document.createElement('div');h.className='hot '+cls;h.style.cssText=`left:${x-w/2}%;top:${y-w*.375}%;width:${w}%;height:${w*.75}%`;h.title=label;h.setAttribute('role','button');h.setAttribute('aria-label',label);h.onclick=e=>{e.stopPropagation();fn()};$('#hots').appendChild(h);return h}
+function loadRoom(i,first){P.room=(i+ROOMS.length)%ROOMS.length;save();const R=ROOMS[P.room];
+ const go=()=>{cur=R;openWins.forEach(w=>{w.fx&&w.fx.stop();w.sc&&w.sc.snd.forEach(layerOff)});openWins=[];used.clear();if(fireOn){layerOff('fire');fireOn=false}if(incense){incense=false}candle=false;$('#glow').classList.remove('on');
+  $('#room').src='img/'+R.id+'.webp';$('#bg').style.backgroundImage=`url(img/${R.id}.webp)`;$('#rname').textContent=R.name;
+  $('#wins').innerHTML='';$('#hots').innerHTML='';
+  R.wins.forEach((b,k)=>{const d=document.createElement('div');d.className='win';d.style.cssText=`left:${b[0]-.3}%;top:${b[1]-.3}%;width:${b[2]+.6}%;height:${b[3]+.6}%`;d.innerHTML='<div class="sc"></div><canvas></canvas><div class="tint"></div><div class="sh l"></div><div class="sh r"></div>';$('#wins').appendChild(d);
+   const W={el:d,sc:null,fx:null};openWins.push(W);
+   const h=hot('w',[b[0]+b[2]/2,b[1]+b[3]/2],b[2],'窗',()=>tapWin(W));h.style.top=b[1]+'%';h.style.height=b[3]+'%'});
+  hot('pulse',R.cushion,26,'蒲團：坐一會兒',startSit);hot('',R.incense,14,'香爐：點一炷香',lightIncense);hot('',R.candle,12,'燭台',lightCandle);hot('',R.qin,20,'古琴：聽音樂',()=>setMusic(!musOn));
+  if(R.fire)hot('',R.fire,24,'壁爐',()=>{audio();fireOn=!fireOn;fireOn?layerOn('fire'):layerOff('fire');toast(fireOn?'柴火劈啪作響':'爐火安靜了')});
+  if(roomRain){layerOff('rain');roomRain=false}if(R.rain&&AC){layerOn('rain');roomRain=true}
+  applyTint();renderRooms();$('#stage').classList.remove('fade')};
+ if(first)go();else{$('#stage').classList.add('fade');setTimeout(go,600)}}
+function tapWin(W){audio();$('#hint').style.opacity=0;
+ if(!W.sc){W.sc=pickScene();W.el.querySelector('.sc').style.backgroundImage=`url(img/${W.sc.id}.jpg)`;W.el.classList.add('open');W.fx=FX(W.el.querySelector('canvas'),W.sc);W.sc.snd.forEach(layerOn);toast(W.sc.name);return}
+ openFull(W.sc)}
+let fullFx=null;
+function openFull(sc){const f=$('#full');f.querySelector('.sc').style.backgroundImage=`url(img/${sc.id}.jpg)`;f.querySelector('.cap').textContent=sc.name+'・點一下回到房間';f.style.display='block';fullFx=FX(f.querySelector('canvas'),sc);applyTint()}
+$('#full').onclick=()=>{$('#full').style.display='none';fullFx&&fullFx.stop()};
+// 小驚喜：每 35~80 秒，在某扇打開的窗出現一次
+(function surprise(){setTimeout(()=>{const c=openWins.filter(w=>w.sc&&w.sc.sp);if(c.length){const w=c[Math.floor(Math.random()*c.length)];w.fx.spr(w.sc.sp[Math.floor(Math.random()*w.sc.sp.length)])}surprise()},35000+Math.random()*45000)})();
+
+/* 香、燭 */
+let smokeRun=false;
+function lightIncense(){incense=!incense;toast(incense?'點了一炷香':'香熄了');const R=cur,cv=$('#smoke');cv.style.left=R.incense[0]+'%';cv.style.top=(R.incense[1]-2)+'%';if(incense&&!smokeRun){smokeRun=true;smoke(cv)}}
+function smoke(cv){const c=cv.getContext('2d');const ps=[];(function f(){cv.width=cv.clientWidth;cv.height=cv.clientHeight;const W=cv.width,H=cv.height;if(incense&&Math.random()<.5)ps.push({x:W/2,y:H,a:.5,r:2,v:Math.random()*6.28});c.clearRect(0,0,W,H);
+ for(const p of ps){p.y-=.6;p.x+=Math.sin(p.y/18+p.v)*.6;p.r+=.06;p.a-=.0035;c.fillStyle=`rgba(235,235,240,${Math.max(p.a,0)*.5})`;c.beginPath();c.arc(p.x,p.y,p.r,0,7);c.fill()}
+ while(ps.length&&ps[0].a<=0)ps.shift();if(incense||ps.length)requestAnimationFrame(f);else{smokeRun=false;c.clearRect(0,0,W,H)}})()}
+function lightCandle(){candle=!candle;const g=$('#glow');g.style.left=cur.candle[0]+'%';g.style.top=(cur.candle[1]-3)+'%';g.classList.toggle('on',candle);toast(candle?'燭光亮了':'燭光熄了')}
+
+/* ===== 坐一會兒 ===== */
+let sitT=null,breathRaf=null,endAt=0;
+function startSit(){audio();if(sitT){endSit();return}bell();endAt=Date.now()+P.dur*60000;$('#timer').style.display='block';$('#tmode').textContent=(P.mode==='breath'?'跟著光呼吸':'靜坐中')+'・點一下結束';$('#hint').style.opacity=0;
+ sitT=setInterval(()=>{const r=Math.max(0,endAt-Date.now());$('#tleft').textContent=String(Math.floor(r/60000)).padStart(2,'0')+':'+String(Math.floor(r/1000)%60).padStart(2,'0');if(r<=0){endSit();bell();toast('時間到了，慢慢睜開眼睛')}},250);
+ if(P.mode==='breath')breathe()}
+function breathe(){const b=$('#breath'),lw=$('#lightwash'),t0=performance.now();b.style.opacity=1;(function f(now){const t=((now-t0)/1000)%12;let v,lab;if(t<4){v=t/4;lab='吸氣'}else if(t<6){v=1;lab='停'}else{v=1-(t-6)/6;lab='吐氣'}const e=.5-.5*Math.cos(v*Math.PI);b.style.transform=`translate(-50%,-50%) scale(${.5+e*.8})`;b.style.opacity=.35+e*.6;lw.style.opacity=e*.35;$('#tmode').textContent=lab+'・點一下結束';breathRaf=requestAnimationFrame(f)})(t0)}
+function endSit(){clearInterval(sitT);sitT=null;cancelAnimationFrame(breathRaf);$('#breath').style.opacity=0;$('#lightwash').style.opacity=0;$('#timer').style.display='none'}
+$('#timer').onclick=()=>{endSit();bell()};
+
+/* ===== 介面 ===== */
+let toastT;function toast(s){const h=$('#hint');h.textContent=s;h.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>h.style.opacity=0,2600)}
+$('#prev').onclick=()=>loadRoom(P.room-1);$('#next').onclick=()=>loadRoom(P.room+1);
+$('#rand').onclick=()=>{let i;do{i=Math.floor(Math.random()*ROOMS.length)}while(i===P.room);loadRoom(i)};
+$('#gear').onclick=()=>$('#sheet').classList.add('on');$('#closeSheet').onclick=()=>$('#sheet').classList.remove('on');
+$('#durs').innerHTML=[3,5,10,20].map(d=>`<span class="chip" data-d="${d}">${d} 分</span>`).join(' ');
+function syncChips(){document.querySelectorAll('[data-d]').forEach(e=>e.classList.toggle('on',+e.dataset.d===P.dur));document.querySelectorAll('[data-m]').forEach(e=>e.classList.toggle('on',e.dataset.m===P.mode));document.querySelectorAll('[data-mu]').forEach(e=>e.classList.toggle('on',e.dataset.mu===P.music))}
+document.querySelectorAll('[data-d]').forEach(e=>e.onclick=()=>{P.dur=+e.dataset.d;save();syncChips()});
+document.querySelectorAll('[data-m]').forEach(e=>e.onclick=()=>{P.mode=e.dataset.m;save();syncChips()});
+document.querySelectorAll('[data-mu]').forEach(e=>e.onclick=()=>{P.music=e.dataset.mu;save();syncChips();audio();setMusic(P.music!=='off')});
+$('#vMusic').value=P.vm;$('#vNature').value=P.vn;
+$('#vMusic').oninput=e=>{P.vm=+e.target.value;save();if(musBus)musBus.gain.value=P.vm/100};
+$('#vNature').oninput=e=>{P.vn=+e.target.value;save();if(natBus)natBus.gain.value=P.vn/100};
+function renderRooms(){$('#rooms').innerHTML=ROOMS.map((r,i)=>`<div class="${i===P.room?'on':''}" data-i="${i}">${r.name}</div>`).join('');document.querySelectorAll('#rooms div').forEach(e=>e.onclick=()=>{$('#sheet').classList.remove('on');loadRoom(+e.dataset.i)})}
+document.addEventListener('pointerdown',()=>{audio();AC.state==='suspended'&&AC.resume();if(cur&&cur.rain&&!roomRain){layerOn('rain');roomRain=true}},{once:true});
+syncChips();loadRoom(P.room,true);
+</script></body></html>
